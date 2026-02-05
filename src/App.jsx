@@ -1,7 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { setupWalletSelector } from '@near-wallet-selector/core';
-import { setupDefaultWallets } from '@near-wallet-selector/default-wallets';
-import { setupModal } from '@near-wallet-selector/modal-ui';
+import { NearConnector } from '@hot-labs/near-connect';
 
 // 1Click APIBase
 const API_BASE = 'https://1click.chaindefuser.com/v0';
@@ -17,7 +15,7 @@ const COMMON_TOKENS = {
 };
 
 function App() {
-  const [selector, setSelector] = useState(null);
+  const [connector, setConnector] = useState(null);
   const [account, setAccount] = useState(null);
   const [tokens, setTokens] = useState([]);
   const [fromChain, setFromChain] = useState('near');
@@ -28,36 +26,27 @@ function App() {
   const [quote, setQuote] = useState(null);
   const [status, setStatus] = useState('');
   const [statusType, setStatusType] = useState('info');
-  const [wallet] = useState(localStorage.getItem('near-wallet') || '');
   const chainSelectRef = useRef(null);
   const statusIntervalRef = useRef(null);
 
-  // Initialize wallet selector
+  // Initialize HOT CONNECTOR
   useEffect(() => {
-    async function initWallet() {
-      const selector = await setupWalletSelector({
-        network: 'mainnet',
-        modules: await setupDefaultWallets(),
-      });
+    const nearConnector = new NearConnector({ network: 'mainnet' });
+    setConnector(nearConnector);
 
-      setSelector(selector);
-
-      const state = selector.store.getState();
-      if (state.accounts.length > 0) {
+    nearConnector.on('wallet:signIn', (state) => {
+      if (state.accounts && state.accounts.length > 0) {
         setAccount(state.accounts[0]);
       }
+    });
 
-      selector.store.subscribe(() => {
-        const newState = selector.store.getState();
-        if (newState.accounts.length > 0) {
-          setAccount(newState.accounts[0]);
-        } else {
-          setAccount(null);
-        }
-      });
-    }
+    nearConnector.on('wallet:signOut', () => {
+      setAccount(null);
+    });
 
-    initWallet();
+    return () => {
+      nearConnector.disconnect();
+    };
   }, []);
 
   // Fetch tokens from 1Click API

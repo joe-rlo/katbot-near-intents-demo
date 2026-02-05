@@ -1,7 +1,6 @@
 {
   "name": "near-intents-swap",
   "version": "2.0.0",
-  "description": "Simple NEAR Intents Swap Frontend",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
@@ -10,9 +9,7 @@
   "dependencies": {
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
-    "@near-wallet-selector/core": "^8.10.2",
-    "@near-wallet-selector/default-wallets": "latest",
-    "@near-wallet-selector/modal-ui": "^8.10.2",
+    "@hot-labs/near-connect": "^1.2.0",
     "near-api-js": "^5.1.1"
   },
   "devDependencies": {
