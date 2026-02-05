@@ -9,7 +9,7 @@
   "dependencies": {
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
-    "@hot-labs/near-connect": "^1.2.0",
+    "@hot-labs/near-connect": "latest",
     "near-api-js": "^5.1.1"
   },
   "devDependencies": {
