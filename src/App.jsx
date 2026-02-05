@@ -229,7 +229,7 @@ function App() {
     return (Number(value) / Number(divisor)).toFixed(6).replace(/\.?0+$/, '');
   };
 
-  const setStatus = (msg, type) => {
+  const updateStatus = (msg, type) => {
     setStatus(msg);
     setStatusType(type);
   };
