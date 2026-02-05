@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { NearConnector } from '@hot-labs/near-connect';
 
-// 1Click APIBase
+// 1Click API Base
 const API_BASE = 'https://1click.chaindefuser.com/v0';
 
 // Default tokens for demo
@@ -26,7 +26,6 @@ function App() {
   const [quote, setQuote] = useState(null);
   const [status, setStatus] = useState('');
   const [statusType, setStatusType] = useState('info');
-  const chainSelectRef = useRef(null);
   const statusIntervalRef = useRef(null);
 
   // Initialize HOT CONNECTOR
@@ -95,32 +94,28 @@ function App() {
 
   // Connect wallet
   const connectWallet = async () => {
-    if (!selector) return;
-
-    const modal = setupModal(selector, {
-      contractId: 'wrap.near',
-    });
-
-    modal.show();
+    if (!connector) return;
+    const wallet = await connector.wallet();
+    wallet.signIn();
   };
 
   // Disconnect wallet
   const disconnectWallet = async () => {
-    if (!selector) return;
-    const wallet = await selector.wallet();
-    await wallet.signOut();
+    if (!connector) return;
+    const wallet = await connector.wallet();
+    wallet.signOut();
   };
 
   // Get quote
   const getQuote = async (dryRun = true) => {
-    if (!wallet && !account?.accountId) {
+    if (!account?.accountId) {
       setStatus('Please connect wallet first', 'error');
       return;
     }
 
     const decimals = getDecimals(fromToken);
     const amountBase = parseAmount(amount, decimals);
-    const refundTo = wallet || account?.accountId;
+    const refundTo = account.accountId;
 
     const deadline = new Date(Date.now() + 30 * 60 * 1000).toISOString();
 
@@ -141,7 +136,7 @@ function App() {
     };
 
     try {
-      setStatus('Getting quote...', 'info');
+      updateStatus('Getting quote...', 'info');
       const response = await fetch(`${API_BASE}/quote`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -155,10 +150,10 @@ function App() {
 
       const result = await response.json();
       setQuote(result);
-      setStatus('Quote received', 'success');
+      updateStatus('Quote received', 'success');
       return result;
     } catch (error) {
-      setStatus(`Error: ${error.message}`, 'error');
+      updateStatus(`Error: ${error.message}`, 'error');
       return null;
     }
   };
@@ -172,17 +167,16 @@ function App() {
     startStatusPolling(result.depositAddress, result.memo);
 
     // If using NEAR, send funds using wallet
-    if (selector && fromToken.includes('wrap.near')) {
+    if (connector && fromToken.includes('wrap.near')) {
       try {
-        const walletInstance = await selector.wallet();
+        const walletInstance = await connector.wallet();
         const decimals = 24;
         const amountBase = parseAmount(amount, decimals);
 
-        // Call the transfer method
-        // This would need to be completed based on NEAR SDK
-        setStatus('Send funds to deposit address to complete swap', 'warning');
+        // This would need to be completed with actual wallet.transfer() call
+        updateStatus('Send funds to deposit address to complete swap', 'warning');
       } catch (error) {
-        setStatus(`Error: ${error.message}`, 'error');
+        updateStatus(`Error: ${error.message}`, 'error');
       }
     }
   };
@@ -270,8 +264,6 @@ function App() {
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <div>
               <strong>Connected:</strong> {account.accountId}
-              <br />
-              <small>{account.providerId || 'Unknown wallet'}</small>
             </div>
             <button
               onClick={disconnectWallet}
