@@ -28,18 +28,20 @@ function App() {
   const [statusType, setStatusType] = useState('info');
   const statusIntervalRef = useRef(null);
 
-  // Initialize HOT CONNECTOR
+  // Initialize HOT Connect
   useEffect(() => {
     const nearConnector = new NearConnector({ network: 'mainnet' });
     setConnector(nearConnector);
 
     nearConnector.on('wallet:signIn', (state) => {
+      console.log('Wallet signed in:', state);
       if (state.accounts && state.accounts.length > 0) {
         setAccount(state.accounts[0]);
       }
     });
 
     nearConnector.on('wallet:signOut', () => {
+      console.log('Wallet signed out');
       setAccount(null);
     });
 
@@ -94,28 +96,45 @@ function App() {
 
   // Connect wallet
   const connectWallet = async () => {
-    if (!connector) return;
-    const wallet = await connector.wallet();
-    wallet.signIn();
+    if (!connector) {
+      console.error('Connector not initialized');
+      return;
+    }
+    
+    console.log('Attempting to connect wallet...');
+    try {
+      const wallet = await connector.wallet();
+      await wallet.signIn();
+    } catch (error) {
+      console.error('Failed to connect wallet:', error);
+      updateStatus(`Failed to connect: ${error.message}`, 'error');
+    }
   };
 
   // Disconnect wallet
   const disconnectWallet = async () => {
     if (!connector) return;
-    const wallet = await connector.wallet();
-    wallet.signOut();
+    try {
+      const wallet = await connector.wallet();
+      await wallet.signOut();
+      setAccount(null);
+      updateStatus('Disconnected', 'info');
+    } catch (error) {
+      console.error('Failed to disconnect wallet:', error);
+    }
   };
 
   // Get quote
   const getQuote = async (dryRun = true) => {
-    if (!account?.accountId) {
-      setStatus('Please connect wallet first', 'error');
+    const accountId = account?.accountId;
+    
+    if (!accountId) {
+      updateStatus('Please connect wallet first', 'error');
       return;
     }
 
     const decimals = getDecimals(fromToken);
     const amountBase = parseAmount(amount, decimals);
-    const refundTo = account.accountId;
 
     const deadline = new Date(Date.now() + 30 * 60 * 1000).toISOString();
 
@@ -127,9 +146,9 @@ function App() {
       destinationAsset: toToken,
       amount: amountBase,
       depositType: 'ORIGIN_CHAIN',
-      refundTo: refundTo,
+      refundTo: accountId,
       refundType: 'ORIGIN_CHAIN',
-      recipient: refundTo,
+      recipient: accountId,
       recipientType: 'INTENTS',
       deadline: deadline,
       quoteWaitingTimeMs: 0,
@@ -169,11 +188,12 @@ function App() {
     // If using NEAR, send funds using wallet
     if (connector && fromToken.includes('wrap.near')) {
       try {
-        const walletInstance = await connector.wallet();
+        const wallet = await connector.wallet();
         const decimals = 24;
         const amountBase = parseAmount(amount, decimals);
 
-        // This would need to be completed with actual wallet.transfer() call
+        // Call the transfer method
+        // This would need to be completed based on NEAR SDK
         updateStatus('Send funds to deposit address to complete swap', 'warning');
       } catch (error) {
         updateStatus(`Error: ${error.message}`, 'error');
@@ -226,6 +246,7 @@ function App() {
   const updateStatus = (msg, type) => {
     setStatus(msg);
     setStatusType(type);
+    console.log(`Status [${type}]:`, msg);
   };
 
   const setStatusMessages = (status) => {
@@ -264,6 +285,8 @@ function App() {
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <div>
               <strong>Connected:</strong> {account.accountId}
+              <br />
+              <small>{account.providerId || 'Wallet connected'}</small>
             </div>
             <button
               onClick={disconnectWallet}
